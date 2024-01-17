@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPU stats</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>GPU stats</h1>
+        <div v-for="gpulist in gpuData" :key="gpulist.gpu_id">
+            <ul>
+                <li v-for="gpu in gpulist" :key="gpu.gpu_id">
+                    ID: {{ gpu.gpu_id }},
+                    Temperature: {{ gpu.temperature }},
+                    Memory Usage: {{ gpu.memory_usage }},
+                    Utilization: {{ gpu.gpu_util }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    gpuData: []
+                };
+            },
+            methods: {
+                async fetchGPUData() {
+                    try {
+                        const response = await axios.get('http://10.20.30.40:8080/gpustats');
+                        this.gpuData = [response.data];
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                    }
+                }
+            },
+            mounted() {
+                this.fetchGPUData();
+            }
+        });
+    </script>
+</body>
+</html>
