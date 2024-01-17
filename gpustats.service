@@ -1,0 +1,11 @@
+[Unit]
+Description=GPU stats
+
+[Service]
+ExecStart=/path/to/your/binary
+Restart=always
+User=username
+Group=groupname
+
+[Install]
+WantedBy=multi-user.target
