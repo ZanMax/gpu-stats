@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ type GPUData struct {
 }
 
 func getNvidiaGPUData() ([]GPUData, error) {
-	cmd := exec.Command("nvidia-smi", "--query-gpu=index,temperature.gpu,memory.used,memory.total,utilization.gpu", "--format=csv,noheader,nounits")
+	cmd := exec.Command("nvidia-smi", "--query-gpu=index,temperature.gpu,memory.used,memory.total,utilization.gpu,power.draw", "--format=csv,noheader,nounits")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -31,12 +32,13 @@ func parseNvidiaGPUData(output []byte) []GPUData {
 	for _, line := range lines {
 		if line != "" {
 			fields := strings.Split(line, ", ")
-			if len(fields) >= 5 {
+			if len(fields) >= 6 {
 				gpu := GPUData{
 					ID:          fields[0],
 					Temperature: fields[1] + "°C",
 					MemoryUsage: fields[2] + " / " + fields[3] + " MiB",
 					GPUUtil:     fields[4] + "%",
+					Power:       fields[5] + "W",
 				}
 				gpuData = append(gpuData, gpu)
 			}
@@ -46,7 +48,7 @@ func parseNvidiaGPUData(output []byte) []GPUData {
 }
 
 func getAMDGPUData() ([]GPUData, error) {
-	cmd := exec.Command("rocm-smi", "--showtemp", "--showuse", "--json", "--showperflevel", "--showpower")
+	cmd := exec.Command("rocm-smi", "--showtemp", "--showuse", "--showpower", "--json")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -56,17 +58,54 @@ func getAMDGPUData() ([]GPUData, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Get memory usage data
+	memCmd := exec.Command("rocm-smi", "--showmeminfo", "vram", "--json")
+	memOutput, memErr := memCmd.Output()
+	if memErr != nil {
+		return nil, memErr
+	}
+
+	var memData map[string]map[string]string
+	err = json.Unmarshal(memOutput, &memData)
+	if err != nil {
+		return nil, err
+	}
+
 	var gpuData []GPUData
 	for card, info := range data {
+		// Convert memory usage to GB
+		usedMemBytes := memData[card]["VRAM Total Used Memory (B)"]
+		totalMemBytes := memData[card]["VRAM Total Memory (B)"]
+		usedMemGB, totalMemGB := convertBytesToGB(usedMemBytes, totalMemBytes)
+
 		gpu := GPUData{
 			ID:          card,
 			Temperature: info["Temperature (Sensor edge) (C)"],
 			GPUUtil:     info["GPU use (%)"],
 			Power:       info["Average Graphics Package Power (W)"],
+			MemoryUsage: fmt.Sprintf("%s / %s GiB", usedMemGB, totalMemGB),
 		}
 		gpuData = append(gpuData, gpu)
 	}
+
 	return gpuData, nil
+}
+
+func convertBytesToGB(usedMemBytes, totalMemBytes string) (string, string) {
+	usedMem, err := strconv.ParseFloat(usedMemBytes, 64)
+	if err != nil {
+		return "N/A", "N/A"
+	}
+	totalMem, err := strconv.ParseFloat(totalMemBytes, 64)
+	if err != nil {
+		return "N/A", "N/A"
+	}
+
+	usedMemGB := usedMem / (1024 * 1024 * 1024)
+	totalMemGB := totalMem / (1024 * 1024 * 1024)
+
+	return fmt.Sprintf("%.2f", usedMemGB), fmt.Sprintf("%.2f", totalMemGB)
 }
 
 func detectGPUBrand() (string, error) {
@@ -77,6 +116,11 @@ func detectGPUBrand() (string, error) {
 		return "amd", nil
 	}
 	return "", fmt.Errorf("unable to detect GPU brand")
+}
+
+type GPUResponse struct {
+	Type string    `json:"type"`
+	GPUs []GPUData `json:"GPUs"`
 }
 
 func gpuHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +140,13 @@ func gpuHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	jsonData, err := json.Marshal(gpuData)
+
+	response := GPUResponse{
+		Type: brand,
+		GPUs: gpuData,
+	}
+
+	jsonData, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
