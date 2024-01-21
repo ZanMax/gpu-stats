@@ -8,15 +8,19 @@
 <body>
     <div id="app">
         <h1>GPU stats</h1>
-        <div v-for="gpulist in gpuData" :key="gpulist.gpu_id">
-            <ul>
-                <li v-for="gpu in gpulist" :key="gpu.gpu_id">
-                    ID: {{ gpu.gpu_id }},
-                    Temperature: {{ gpu.temperature }},
-                    Memory Usage: {{ gpu.memory_usage }},
-                    Utilization: {{ gpu.gpu_util }}
-                </li>
-            </ul>
+        <div v-for="(serverData, serverIP) in servers" :key="serverIP">
+            <h2>{{ serverIP }}</h2>
+            <div v-if="serverData.GPUs">
+                <div v-for="gpu in serverData.GPUs" :key="gpu.gpu_id">
+                    <ul>
+                        <li>ID: {{ gpu.gpu_id }}</li>
+                        <li>Temperature: {{ gpu.temperature }}</li>
+                        <li>Memory Usage: {{ gpu.memory_usage }}</li>
+                        <li>Utilization: {{ gpu.gpu_util }}</li>
+                        <li>Power: {{ gpu.power }}</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -25,21 +29,25 @@
             el: '#app',
             data() {
                 return {
-                    gpuData: []
+                    serverList: ['10.20.30.40', '10.20.30.50'], // Add your server IPs here
+                    servers: {}
                 };
             },
             methods: {
-                async fetchGPUData() {
+                async fetchGPUData(serverIP) {
                     try {
-                        const response = await axios.get('http://10.20.30.40:8080/gpustats');
-                        this.gpuData = [response.data];
+                        const response = await axios.get(`http://${serverIP}:8080/gpustats`);
+                        this.$set(this.servers, serverIP, response.data);
                     } catch (error) {
-                        console.error('Error fetching data:', error);
+                        console.error('Error fetching data from', serverIP, error);
+                        this.$set(this.servers, serverIP, { error: 'Unable to fetch data' });
                     }
                 }
             },
             mounted() {
-                this.fetchGPUData();
+                this.serverList.forEach(serverIP => {
+                    this.fetchGPUData(serverIP);
+                });
             }
         });
     </script>
