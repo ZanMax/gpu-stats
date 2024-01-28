@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -119,8 +120,9 @@ func detectGPUBrand() (string, error) {
 }
 
 type GPUResponse struct {
-	Type string    `json:"type"`
-	GPUs []GPUData `json:"GPUs"`
+	Type     string    `json:"type"`
+	GPUs     []GPUData `json:"GPUs"`
+	Hostname string    `json:"hostname"`
 }
 
 func gpuHandler(w http.ResponseWriter, r *http.Request) {
@@ -141,9 +143,16 @@ func gpuHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	response := GPUResponse{
-		Type: brand,
-		GPUs: gpuData,
+		Type:     brand,
+		GPUs:     gpuData,
+		Hostname: hostname,
 	}
 
 	jsonData, err := json.Marshal(response)
