@@ -34,10 +34,22 @@ func parseNvidiaGPUData(output []byte) []GPUData {
 		if line != "" {
 			fields := strings.Split(line, ", ")
 			if len(fields) >= 6 {
+				memoryUsage, err := strconv.ParseFloat(fields[2], 64)
+				if err != nil {
+					memoryUsage = 0
+				}
+				totalMemory, err := strconv.ParseFloat(fields[3], 64)
+				if err != nil {
+					memoryUsage = 0
+				}
+
+				memoryUsageGiB := fmt.Sprintf("%.2f", memoryUsage/1024)
+				totalMemoryGiB := fmt.Sprintf("%.2f", totalMemory/1024)
+
 				gpu := GPUData{
 					ID:          fields[0],
 					Temperature: fields[1] + "°C",
-					MemoryUsage: fields[2] + " / " + fields[3] + " MiB",
+					MemoryUsage: memoryUsageGiB + " / " + totalMemoryGiB + " GiB",
 					GPUUtil:     fields[4] + "%",
 					Power:       fields[5] + "W",
 				}
@@ -82,9 +94,9 @@ func getAMDGPUData() ([]GPUData, error) {
 
 		gpu := GPUData{
 			ID:          card,
-			Temperature: info["Temperature (Sensor edge) (C)"],
-			GPUUtil:     info["GPU use (%)"],
-			Power:       info["Average Graphics Package Power (W)"],
+			Temperature: info["Temperature (Sensor edge) (C)"] + "°C",
+			GPUUtil:     info["GPU use (%)"] + "%",
+			Power:       info["Average Graphics Package Power (W)"] + "W",
 			MemoryUsage: fmt.Sprintf("%s / %s GiB", usedMemGB, totalMemGB),
 		}
 		gpuData = append(gpuData, gpu)
