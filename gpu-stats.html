@@ -164,7 +164,7 @@
         methods: {
             async fetchGPUData(serverIP) {
                 try {
-                    const response = await axios.get(`http://${serverIP}:8080/gpustats`);
+                    const response = await axios.get(`http://${serverIP}:8998/gpustats`);
                     this.$set(this.servers, serverIP, response.data);
                 } catch (error) {
                     console.error('Error fetching data from', serverIP, error);
