@@ -17,7 +17,8 @@ go build .
 ```
 ## Run as a service
 
-edit gpustats.service
+- edit gpustats.service
+- copy gpustats.service to /etc/systemd/system/
 ```
 Replace /path/to/your/binary with the full path to your compiled binary.
 Set User and Group to appropriate values.

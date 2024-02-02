@@ -1,11 +1,13 @@
 [Unit]
-Description=GPU stats
+Description=GPU Stats
+After=network.target
 
 [Service]
-ExecStart=/path/to/your/binary
+User=<User>
+Group=<Group>
 Restart=always
-User=username
-Group=groupname
+RestartSec=5s
+ExecStart=/path/to/your/binary
 
 [Install]
 WantedBy=multi-user.target
