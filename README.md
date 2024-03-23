@@ -1,7 +1,7 @@
 # GPU stats
 Go web service which return json data with info about GPU usage
 
-<img src="https://github.com/ZanMax/zanmax.github.io/blob/master/public/img/gpustats.png?raw=true" width="961" height="939" alt="GPU stats">
+<img src="https://github.com/ZanMax/zanmax.github.io/blob/master/public/img/gpustats.png?raw=true" width="481" height="470" alt="GPU stats">
 
 ## Installation
 ```bash
