@@ -3,6 +3,13 @@ Go web service which return json data with info about GPU usage
 
 <img src="https://github.com/ZanMax/zanmax.github.io/blob/master/public/img/gpustats.png?raw=true" width="481" height="470" alt="GPU stats">
 
+## Necessary software
+
+#### For Nvidia GPUs:
+- nvidia-smi
+#### For AMD GPUs:
+- rocm-smi
+
 ## Installation
 ```bash
 git clone https://github.com/ZanMax/gpu-stats.git
